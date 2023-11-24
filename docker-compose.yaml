@@ -1,0 +1,25 @@
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: "miContrasenia"
+      PGDATA: var/lib/postgresql/data
+    ports:
+      - 15432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts:/docker-entrypoint-initdb.d
+    networks:
+      postgres_network:
+        aliases:
+          - postgrest_host
+volumes:
+  pgdata: {}
+networks:
+  postgres_network:
+      name: postgres_net
+      driver: bridge
