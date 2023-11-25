@@ -131,3 +131,73 @@ func DeleteVaccination(w http.ResponseWriter, r *http.Request) {
 	errorMessage := map[string]string{"ok": "Vacunación eliminada correctamente."}
 	json.NewEncoder(w).Encode(errorMessage)
 }
+
+func UpdateVaccination(w http.ResponseWriter, r *http.Request) {
+	vId := r.URL.Path[len("/vaccinations/"):]
+	if vId == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		errorMessage := map[string]string{"error": "ID de vacunación no proporcionado."}
+		json.NewEncoder(w).Encode(errorMessage)
+		return
+	}
+
+	id, err := strconv.Atoi(vId)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		errorMessage := map[string]string{"error": "ID de vacunación no es un entero."}
+		json.NewEncoder(w).Encode(errorMessage)
+		return
+	}
+
+	var vaccination models.Vaccination
+	err = json.NewDecoder(r.Body).Decode(&vaccination)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		errorMessage := map[string]string{"error": "Error al convertir body."}
+		json.NewEncoder(w).Encode(errorMessage)
+		return
+	}
+
+	droga, err := drugController.GetDrug(vaccination.DrugId)
+
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusBadRequest)
+		errorMessage := map[string]string{"error": "ID de droga no existe."}
+		json.NewEncoder(w).Encode(errorMessage)
+		return
+	}
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		errorMessage := map[string]string{"error": "Error al validar ID de droga."}
+		json.NewEncoder(w).Encode(errorMessage)
+		return
+	}
+
+	if droga.AvailableAt.After(vaccination.Fecha) {
+		w.WriteHeader(http.StatusBadRequest)
+		errorMessage := map[string]string{"error": "Fecha de vacunación previa a fecha de disponibilidad de droga."}
+		json.NewEncoder(w).Encode(errorMessage)
+		return
+	}
+
+	db := db.GetConnection()
+	sqlStatement := `
+	UPDATE vaccinations
+	SET name = $1, drug_id= $2 , 
+	dose = $3, fecha = $4 
+	WHERE id = $5`
+
+	_, err = db.Exec(sqlStatement, vaccination.Name, vaccination.DrugId, vaccination.Dose, vaccination.Fecha, id)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		errorMessage := map[string]string{"error": "Error al actualizar vacunación en la base de datos."}
+		json.NewEncoder(w).Encode(errorMessage)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	errorMessage := map[string]string{"ok": "vacunación actualizada correctamente."}
+	json.NewEncoder(w).Encode(errorMessage)
+}

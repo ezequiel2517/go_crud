@@ -24,6 +24,8 @@ func InitRoutes() {
 		switch r.Method {
 		case http.MethodDelete:
 			vaccinationController.DeleteVaccination(w, r)
+		case http.MethodPut:
+			vaccinationController.UpdateVaccination(w, r)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			errorMessage := map[string]string{"error": "Método no permitido para la ruta"}
