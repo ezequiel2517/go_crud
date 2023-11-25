@@ -20,19 +20,23 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	user, _ := usercontroller.GetUser(userLogin.Email)
 	if !authentication.CheckPassword(userLogin.Password, user.Password) {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		w.WriteHeader(http.StatusUnauthorized)
+		errorMessage := map[string]string{"error": "Credenciales invalidas."}
+		json.NewEncoder(w).Encode(errorMessage)
 		return
 	}
 
-	tokenString, err := authentication.GenerarToken(userLogin.Email)
+	tokenStr, err := authentication.GenerarToken(userLogin.Email)
 	if err != nil {
-		http.Error(w, "Error generating token", http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		errorMessage := map[string]string{"error": "Error al generar el JWT."}
+		json.NewEncoder(w).Encode(errorMessage)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
+	json.NewEncoder(w).Encode(map[string]string{"token": tokenStr})
 }
 
 func SignupHandler(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +59,9 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 
 	hashedPassword, err := authentication.HashPassword(newUser.Password)
 	if err != nil {
-		http.Error(w, "Error hashing password", http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		errorMessage := map[string]string{"error": "Error al aplicar hash a password."}
+		json.NewEncoder(w).Encode(errorMessage)
 		return
 	}
 
@@ -73,5 +79,6 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("User registered successfully"))
+	errorMessage := map[string]string{"ok": "Usuario registrado con exito."}
+	json.NewEncoder(w).Encode(errorMessage)
 }

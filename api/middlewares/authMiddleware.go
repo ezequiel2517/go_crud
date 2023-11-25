@@ -3,26 +3,26 @@ package middlewares
 import (
 	"api/api/authentication"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
-var jwtKey = []byte("MI_PASSWORD_JWT")
+var JWTKey = []byte(os.Getenv("MY_VARIABLE"))
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		authorizationHeader := r.Header.Get("Authorization")
+		authHeader := r.Header.Get("Authorization")
 
-		if authorizationHeader == "" {
+		if authHeader == "" {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		tokenString := strings.Split(authorizationHeader, " ")[1]
-
-		token, err := jwt.ParseWithClaims(tokenString, &authentication.Claims{}, func(token *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
+		tokenStr := strings.Split(authHeader, " ")[1]
+		token, err := jwt.ParseWithClaims(tokenStr, &authentication.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+			return JWTKey, nil
 		})
 
 		if err != nil || !token.Valid {

@@ -1,20 +1,21 @@
 package authentication
 
 import (
+	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
-type Claims struct {
+type JWTClaims struct {
 	Email string
 	jwt.StandardClaims
 }
 
-var jwtKey = []byte("MI_PASSWORD_JWT")
+var JWTKey = []byte(os.Getenv("MY_VARIABLE"))
 
 func GenerarToken(email string) (string, error) {
-	claims := &Claims{
+	claims := &JWTClaims{
 		Email: email,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour).Unix(),
@@ -22,19 +23,21 @@ func GenerarToken(email string) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtKey)
+	return token.SignedString(JWTKey)
 }
 
-func ParsearToken(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
+func ParsearToken(tokenStr string) (*JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return JWTKey, nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+	claims, ok := token.Claims.(*JWTClaims)
+
+	if ok && token.Valid {
 		return claims, nil
 	}
 
