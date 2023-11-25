@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strconv"
 )
 
 func InsertVaccination(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +45,7 @@ func InsertVaccination(w http.ResponseWriter, r *http.Request) {
 
 	db := db.GetConnection()
 	sqlStatement := `
-	INSERT INTO vaccination (name, drug_id, dose, fecha)
+	INSERT INTO vaccinations (name, drug_id, dose, fecha)
 	VALUES ($1, $2, $3, $4)
 	RETURNING id`
 
@@ -59,5 +60,74 @@ func InsertVaccination(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	errorMessage := map[string]string{"ok": "Vacunación creada exitosamente."}
+	json.NewEncoder(w).Encode(errorMessage)
+}
+
+func GetVaccinations(w http.ResponseWriter, r *http.Request) {
+	db := db.GetConnection()
+	sqlStatement := `
+	SELECT id, name, drug_id, dose, fecha
+	FROM vaccinations
+	`
+
+	rows, err := db.Query(sqlStatement)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		errorMessage := map[string]string{"error": "Error al obtener vacunaciones de la base de datos."}
+		json.NewEncoder(w).Encode(errorMessage)
+		return
+	}
+	defer rows.Close()
+
+	var vaccinations []models.Vaccination
+	for rows.Next() {
+		var vaccination models.Vaccination
+		err := rows.Scan(&vaccination.ID, &vaccination.Name, &vaccination.DrugId, &vaccination.DrugId, &vaccination.Fecha)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			errorMessage := map[string]string{"error": "Error al obtener drogas de la base de datos."}
+			json.NewEncoder(w).Encode(errorMessage)
+			return
+		}
+		vaccinations = append(vaccinations, vaccination)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(vaccinations)
+}
+
+func DeleteVaccination(w http.ResponseWriter, r *http.Request) {
+	vId := r.URL.Path[len("/vaccinations/"):]
+	if vId == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		errorMessage := map[string]string{"error": "ID de vacunación no proporcionado."}
+		json.NewEncoder(w).Encode(errorMessage)
+		return
+	}
+
+	id, err := strconv.Atoi(vId)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		errorMessage := map[string]string{"error": "ID de vacunación no es un entero."}
+		json.NewEncoder(w).Encode(errorMessage)
+		return
+	}
+
+	db := db.GetConnection()
+	sqlStatement := `
+	DELETE FROM vaccinations
+	WHERE id = $1`
+
+	_, err = db.Exec(sqlStatement, id)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		errorMessage := map[string]string{"error": "Error al eliminar vacunación de la base de datos."}
+		json.NewEncoder(w).Encode(errorMessage)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	errorMessage := map[string]string{"ok": "Vacunación eliminada correctamente."}
 	json.NewEncoder(w).Encode(errorMessage)
 }

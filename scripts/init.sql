@@ -9,14 +9,14 @@ CREATE TABLE IF NOT EXISTS drugs (
     available_at DATE
 );
 
-CREATE TABLE IF NOT EXISTS usuario (
+CREATE TABLE IF NOT EXISTS usuarios (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50),
 	email VARCHAR(50),
 	password VARCHAR(50)
 );
 
-CREATE TABLE IF NOT EXISTS vaccination (
+CREATE TABLE IF NOT EXISTS vaccinations (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50),
 	drug_id INTEGER,
